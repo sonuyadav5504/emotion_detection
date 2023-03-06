@@ -2,12 +2,14 @@ import numpy as np
 import argparse
 import matplotlib.pyplot as plt
 import cv2
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import MaxPooling2D
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from playsound import playsound
+import time
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten
+from keras.layers import Conv2D
+from keras.optimizers import Adam
+from keras.layers import MaxPooling2D
+from keras.preprocessing.image import ImageDataGenerator
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -42,13 +44,13 @@ def plot_model_history(model_history):
     plt.show()
 
 # Define data generators
-train_dir = '/home/matrix/Documents/sonu/haarcascade_frontalface_default.xml/train'
-val_dir = '/home/matrix/Documents/sonu/haarcascade_frontalface_default.xml/test'
+train_dir = 'train'
+val_dir = 'test'
 
 num_train = 28709
 num_val = 7178
 batch_size = 64
-num_epoch = 50
+num_epoch = 100
 
 train_datagen = ImageDataGenerator(rescale=1./255)
 val_datagen = ImageDataGenerator(rescale=1./255)
@@ -88,7 +90,7 @@ model.add(Dense(7, activation='softmax'))
 
 # If you want to train the same model or try other models, go for this
 if mode == "train":
-    model.compile(loss='categorical_crossentropy',optimizer=Adam(learning_rate=0.0001, decay=1e-6),metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy',optimizer=Adam(lr=0.0001, decay=1e-6),metrics=['accuracy'])
     model_info = model.fit_generator(
             train_generator,
             steps_per_epoch=num_train // batch_size,
@@ -110,12 +112,15 @@ elif mode == "display":
 
     # start the webcam feed
     cap = cv2.VideoCapture(0)
-    while True:
+
+    j=0
+    p=""
+    while j<=5:
         # Find haar cascade to draw bounding box around face
         ret, frame = cap.read()
         if not ret:
             break
-        facecasc = cv2.CascadeClassifier('/home/matrix/Documents/sonu/haarcascade_frontalface_default.xml/frontalface.xml')
+        facecasc = cv2.CascadeClassifier('frontalface.xml')
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = facecasc.detectMultiScale(gray,scaleFactor=1.3, minNeighbors=5)
 
@@ -125,11 +130,19 @@ elif mode == "display":
             cropped_img = np.expand_dims(np.expand_dims(cv2.resize(roi_gray, (48, 48)), -1), 0)
             prediction = model.predict(cropped_img)
             maxindex = int(np.argmax(prediction))
+            j=j+1
+            p=emotion_dict[maxindex]
             cv2.putText(frame, emotion_dict[maxindex], (x+20, y-60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
-        cv2.imshow('Video', cv2.resize(frame,(1600,960),interpolation = cv2.INTER_CUBIC))
+        cv2.imshow('Video', cv2.resize(frame,(480,360),interpolation = cv2.INTER_CUBIC))
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+    print("Hey!")
+    print("currently your emotion is :~~ " + p + "~~.")
+    print("Now Music is playing within 2 sec :----> ")
 
     cap.release()
     cv2.destroyAllWindows()
+    time.sleep(2)
+    playsound(p+".mp3")
+    
